@@ -132,25 +132,25 @@ function renderDashboard(){
 
   return `
     <div class="dash-grid">
-      <div class="panel">
+      <div class="panel panel-gradelist">
         <div class="panel-header">
           <div><span class="panel-eyebrow">Grade List</span><div class="panel-title">Select Your Level</div></div>
           <button class="panel-link">Select Grade</button>
         </div>
         <div class="mini-grade-grid">${gradeCards}</div>
       </div>
-      <div class="panel accent-border">
+      <div class="panel accent-border panel-emergency">
         <div class="panel-header"><div class="panel-title" style="margin-top:0;font-size:15px;">Emergency Preparedness Tutorials</div></div>
         <ul class="tutorial-list">${tutorials}</ul>
       </div>
-      <div class="panel">
+      <div class="panel panel-lessons">
         <div class="panel-header">
           <div><span class="panel-eyebrow">Preview</span><div class="panel-title" style="font-size:16px;">Lesson Preview</div></div>
           <button class="panel-link" id="previewCardsBtn">View Module</button>
         </div>
         <div class="lesson-strip">${lessonStrip}</div>
       </div>
-      <div class="customize-panel">
+      <div class="customize-panel panel-announcements">
         <h4>School Announcements</h4>
         <p>Add school announcements, mission details, or welcome messages for learners.</p>
         <ul class="announcement-list">${announcementItems}</ul>
