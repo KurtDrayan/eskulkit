@@ -329,13 +329,18 @@ function closeModal(){ document.getElementById('modalOverlay').classList.remove(
 
 function openPdfModal(idx){
   const grade = state.currentGrade;
-  const src = pdfPath(grade, idx);
+  const relSrc = pdfPath(grade, idx);
+  const absSrc = new URL(relSrc, window.location.href).href;
+  const viewerSrc = `https://docs.google.com/viewer?url=${encodeURIComponent(absSrc)}&embedded=true`;
   const overlay = document.getElementById('modalOverlay');
   const modalBody = document.getElementById('modalBody');
   modalBody.classList.add('modal-lg');
   modalBody.innerHTML = `
     <h3>Lesson ${parseInt(idx)+1}</h3>
-    <iframe src="${src}" style="width:100%;height:70vh;border:1.5px solid var(--line);border-radius:12px;background:#f5f5f5;"></iframe>
+    <iframe src="${viewerSrc}" style="width:100%;height:70vh;border:1.5px solid var(--line);border-radius:12px;background:#f5f5f5;"></iframe>
+    <div style="font-size:12.5px;color:var(--muted);margin-top:8px;">
+      Not loading? <a href="${absSrc}" target="_blank">Open the PDF directly</a> instead.
+    </div>
     <div class="modal-actions"><button class="cancel" id="pdfCancel">Close</button></div>
   `;
   overlay.classList.add('open');
