@@ -77,9 +77,10 @@ body {
 }
 .brand-badge img {
     width: 100%;
-    max-width: 150px;
+    max-width: 200px;
     height: auto;
     display: block;
+    filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.40));
 }
 .dots {
     position: absolute;
