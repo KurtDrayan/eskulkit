@@ -329,10 +329,20 @@ function bindLessonActions() {
 }
 
 // ============================================================
-//  EMERGENCY MODAL
+//  EMERGENCY MODAL (with Zoom + Drag)
 // ============================================================
 
 function openEmergencyModal(title) {
+    // Reset zoom and pan for fresh start
+    let zoom = 1;
+    let panX = 0;
+    let panY = 0;
+    let isDragging = false;
+    let startX = 0,
+        startY = 0;
+    let startPanX = 0,
+        startPanY = 0;
+
     const overlay = document.getElementById('modalOverlay');
     const modalBody = document.getElementById('modalBody');
     modalBody.classList.remove('modal-lg');
@@ -343,9 +353,10 @@ function openEmergencyModal(title) {
 
     let content = `<h3>${label}</h3>`;
     content += `<div class="sub">${title}</div>`;
+    content += `<div class="emergency-modal-img-wrapper" id="pubmatWrapper">`;
 
     if (imgPath) {
-        content += `<img src="${imgPath}" alt="${title}" class="emergency-modal-img" onerror="this.style.display='none';document.getElementById('fallbackMsg').style.display='block'" />`;
+        content += `<img src="${imgPath}" alt="${title}" id="pubmatImage" class="emergency-modal-img" style="transform: translate(0px, 0px) scale(1);" onerror="this.style.display='none';document.getElementById('fallbackMsg').style.display='block'" />`;
         content += `<div id="fallbackMsg" style="display:none;" class="emergency-modal-fallback">
             <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v5M12 16h.01"/></svg>
             <p>Image not found: <strong>${filename}</strong><br />Make sure the file exists inside the <code>/emergency/</code> folder.</p>
@@ -356,16 +367,131 @@ function openEmergencyModal(title) {
             <p>No image mapped for this tutorial.</p>
         </div>`;
     }
+    content += `</div>`;
+
+    // Zoom Controls
+    content += `<div class="zoom-controls">
+        <button id="zoomOutBtn" title="Zoom Out">−</button>
+        <span class="zoom-level" id="zoomLevelDisplay">100%</span>
+        <button id="zoomInBtn" title="Zoom In">+</button>
+        <button id="zoomResetBtn" title="Reset Zoom">Reset</button>
+    </div>`;
 
     content += `<div class="modal-actions"><button class="cancel" id="emergencyModalClose">Close</button></div>`;
     modalBody.innerHTML = content;
     overlay.classList.add('open');
 
-    document.getElementById('emergencyModalClose').addEventListener('click', () => {
+    const img = document.getElementById('pubmatImage');
+    const wrapper = document.getElementById('pubmatWrapper');
+
+    // --- Helper: Apply Transform ---
+    function applyTransform() {
+        if (img) {
+            img.style.transform = 'translate(' + panX + 'px, ' + panY + 'px) scale(' + zoom + ')';
+            document.getElementById('zoomLevelDisplay').textContent = Math.round(zoom * 100) + '%';
+        }
+    }
+
+    // --- Zoom Functions ---
+    function zoomIn() {
+        zoom = Math.min(3, zoom + 0.25);
+        applyTransform();
+    }
+
+    function zoomOut() {
+        zoom = Math.max(0.5, zoom - 0.25);
+        applyTransform();
+    }
+
+    function zoomReset() {
+        zoom = 1;
+        panX = 0;
+        panY = 0;
+        applyTransform();
+    }
+
+    // --- Drag/Pan Functions (Mouse) ---
+    function onDragStart(e) {
+        if (!img) return;
+        isDragging = true;
+        const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+        const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+        if (clientX === undefined) return;
+        startX = clientX;
+        startY = clientY;
+        startPanX = panX;
+        startPanY = panY;
+        wrapper.classList.add('dragging');
+        wrapper.style.cursor = 'grabbing';
+        e.preventDefault();
+    }
+
+    function onDragMove(e) {
+        if (!isDragging || !img) return;
+        const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+        const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+        if (clientX === undefined) return;
+        const dx = clientX - startX;
+        const dy = clientY - startY;
+        panX = startPanX + dx;
+        panY = startPanY + dy;
+        applyTransform();
+        e.preventDefault();
+    }
+
+    function onDragEnd(e) {
+        if (isDragging) {
+            isDragging = false;
+            wrapper.classList.remove('dragging');
+            wrapper.style.cursor = 'grab';
+        }
+    }
+
+    // --- Attach Events ---
+    if (img && wrapper) {
+        // Mouse events
+        wrapper.addEventListener('mousedown', onDragStart);
+        window.addEventListener('mousemove', onDragMove);
+        window.addEventListener('mouseup', onDragEnd);
+
+        // Touch events
+        wrapper.addEventListener('touchstart', onDragStart, { passive: false });
+        window.addEventListener('touchmove', onDragMove, { passive: false });
+        window.addEventListener('touchend', onDragEnd, { passive: false });
+
+        // Prevent context menu on long press (annoying)
+        wrapper.addEventListener('contextmenu', (e) => e.preventDefault());
+    }
+
+    // --- Attach Zoom Controls ---
+    const zoomInBtn = document.getElementById('zoomInBtn');
+    const zoomOutBtn = document.getElementById('zoomOutBtn');
+    const zoomResetBtn = document.getElementById('zoomResetBtn');
+    const closeBtn = document.getElementById('emergencyModalClose');
+
+    if (zoomInBtn) zoomInBtn.addEventListener('click', zoomIn);
+    if (zoomOutBtn) zoomOutBtn.addEventListener('click', zoomOut);
+    if (zoomResetBtn) zoomResetBtn.addEventListener('click', zoomReset);
+
+    // --- Close handler ---
+    function cleanupAndClose() {
+        // Clean up global listeners to prevent memory leaks
+        if (img && wrapper) {
+            window.removeEventListener('mousemove', onDragMove);
+            window.removeEventListener('mouseup', onDragEnd);
+            window.removeEventListener('touchmove', onDragMove);
+            window.removeEventListener('touchend', onDragEnd);
+        }
         overlay.classList.remove('open');
-    });
+    }
+
+    if (closeBtn) {
+        closeBtn.addEventListener('click', cleanupAndClose);
+    }
     overlay.addEventListener('click', function(e) {
-        if (e.target === this) this.classList.remove('open');
+        if (e.target === this) {
+            cleanupAndClose();
+        }
     });
 }
 
@@ -435,7 +561,10 @@ async function submitQuiz(idx) {
     });
 }
 
-function closeModal() { document.getElementById('modalOverlay').classList.remove('open'); }
+function closeModal() {
+    // Ensure any lingering drag listeners from emergency modal are removed (though they are scoped)
+    document.getElementById('modalOverlay').classList.remove('open');
+}
 
 function openPdfModal(idx) {
     const grade = state.currentGrade;
